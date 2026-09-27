@@ -4,14 +4,19 @@ import argparse
 import json
 import sys
 
-from .key import CollateError, collate, sort_key
+from .key import CollateError, collate, key_to_jsonable, unique
 
 
 def build_parser():
     parser = argparse.ArgumentParser(prog="text-collate", description="文本排序（collation）")
     parser.add_argument("--text", help="直接给文本（用 \\n 表示换行）")
     parser.add_argument("--file", help="从文件读")
-    parser.add_argument("--key", action="store_true", help="按输入顺序打印每行的排序键")
+    parser.add_argument("--key", action="store_true", help="按输入顺序打印每行的排序键（JSON）")
+    parser.add_argument(
+        "--unique",
+        action="store_true",
+        help="按段序列去重，每类只留输入顺序里的第一条",
+    )
     return parser
 
 
@@ -31,7 +36,12 @@ def main(argv=None):
             lines.pop()
         if args.key:
             for line in lines:
-                print(json.dumps(list(sort_key(line)), ensure_ascii=False))
+                print(json.dumps(key_to_jsonable(line), ensure_ascii=False))
+        elif args.unique:
+            dropped, kept = unique(lines)
+            print("dropped=%d" % dropped)
+            for line in kept:
+                print(line)
         else:
             for line in collate(lines):
                 print(line)
